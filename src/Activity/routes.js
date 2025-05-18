@@ -10,4 +10,6 @@ router.use(verifyToken);
 // Route untuk menerima data aktivitas
 router.post("/activity", cont.postActivity);
 
+router.get("/activity/:idk", cont.getActivity);
+
 module.exports = router;
