@@ -1,15 +1,15 @@
-const { Router } = require("express");
-const cont = require("./cont");
-const verifyToken = require("../../verifyToken");
+// src/Activity/routes.js
+const express = require("express");
+const controller = require("./cont");
 
-const router = Router();
+const router = express.Router();
 
-router.use(verifyToken);
-
-router.post("/activity", cont.postActivity);
-
-router.get("/activity/:idk", cont.getActivity);
-
-// Tidak perlu route untuk snapshot karena otomatis berjalan lewat cron
+router.post("/test", controller.testDevice);
+router.post("/start", controller.startPalm);
+router.post("/state", controller.getPalmState);
+router.post("/feature", controller.getPalmFeature);
+router.post("/image", controller.getPalmImage);
+router.get("/templates", controller.listPalmTemplates);
+router.get("/images", controller.listPalmImages);
 
 module.exports = router;

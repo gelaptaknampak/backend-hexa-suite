@@ -1,49 +1,20 @@
-// Query untuk cek apakah sudah ada activity dengan idk yang sama
-const checkActivityQuery = `
-    SELECT * FROM activity_tracker WHERE idk = $1;
+// src/Activity/queries.js
+const insertPalmTemplate = `
+  INSERT INTO palm_templates (user_id, palmvein, palmprint, created_at)
+  VALUES ($1, $2, $3, NOW()) RETURNING *;
 `;
 
-// Query untuk update data activity jika idk sudah ada
-const updateActivityQuery = `
-    UPDATE activity_tracker
-    SET 
-        mouse_clicks = $1,
-        keystrokes = $2,
-        visited_tabs = $3,
-        created_at = $4
-    WHERE idk = $5
-    RETURNING *;
+const insertPalmImage = `
+  INSERT INTO palm_images (user_id, image_data, created_at)
+  VALUES ($1, $2, NOW()) RETURNING *;
 `;
 
-// Query untuk insert data activity baru
-const insertActivityQuery = `
-    INSERT INTO activity_tracker (idk, mouse_clicks, keystrokes, visited_tabs, created_at)
-    VALUES ($1, $2, $3, $4, $5) RETURNING *;
-`;
-
-// Query untuk mengambil data aktivitas berdasarkan idk
-const getActivityQuery = `
-    SELECT mouse_clicks, keystrokes, visited_tabs, created_at
-    FROM activity_tracker
-    WHERE idk = $1;
-`;
-
-// --- Query baru: ambil semua data activity_tracker ---
-const getAllActivityQuery = `
-    SELECT * FROM activity_tracker;
-`;
-
-// --- Query baru: insert snapshot ke activity_history ---
-const insertActivityHistoryQuery = `
-    INSERT INTO activity_history (snapshot, created_at)
-    VALUES ($1, NOW());
-`;
+const getPalmTemplates = `SELECT * FROM palm_templates ORDER BY created_at DESC`;
+const getPalmImages = `SELECT * FROM palm_images ORDER BY created_at DESC`;
 
 module.exports = {
-    checkActivityQuery,
-    updateActivityQuery,
-    insertActivityQuery,
-    getActivityQuery,
-    getAllActivityQuery,
-    insertActivityHistoryQuery
+  insertPalmTemplate,
+  insertPalmImage,
+  getPalmTemplates,
+  getPalmImages,
 };

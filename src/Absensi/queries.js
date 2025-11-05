@@ -113,6 +113,11 @@ where
 id = $2
 returning *`;
 
+const insertAttendance = `
+  INSERT INTO absensi (idk, date, nama, group_karyawan, first_attendance, last_attendance, be_late, leave_early, absence_from_duty, overtime, body_temperature)
+  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+`;
+
 module.exports = {
   checkAbsensiTodaySelf,
   getAbsensiDated,
@@ -123,6 +128,7 @@ module.exports = {
   postAbsensiToday,
   excelAbsensi,
   excelAbsensiPerOrang,
+  insertAttendance,
 
   patchStatus,
 };

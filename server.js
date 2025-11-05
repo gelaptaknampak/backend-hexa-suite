@@ -27,8 +27,24 @@ const summaryKehadiran = require("./src/Kehadiran/routes");
 const absensiWeekend = require("./src/Absensi_Weekend/routes");
 const geoLoc = require("./src/Geolocation/routes");
 const Act = require("./src/Activity/routes");
+const palm = require("./src/palm/routes");
+const palmback = require("./src/palmback/routes");
 const app = express();
 const port = process.env.PORT || 3000;
+
+app.use(palmback);
+
+app.use((req, _res, next) => {
+  if (req.path.startsWith("/access/deviceApi/MV930")) {
+    console.log("MP30 >>", {
+      method: req.method,
+      path: req.path,
+      headers: req.headers,
+      body: req.body,
+    });
+  }
+  next();
+});
 
 app.use(cors({
   origin: '*', // Untuk mengizinkan semua domain (bisa juga disesuaikan)
@@ -59,7 +75,8 @@ app.use("/api/kehadiran",summaryKehadiran);
 app.use("/api/weekendabsensi",absensiWeekend);
 app.use("/api/geolocation",geoLoc);
 app.use("/api/Act",Act);
-
+app.use("/api/palm",palm);
+app.use("/api/palmback",palmback);
 let temp = "";
 let temptime = Date.now();
 let temptimedelay = 5;
