@@ -100,7 +100,7 @@ const savePalmData = async ({ name, palmprint, palmvein }) => {
   const now = new Date();
   const insertSql = `
     INSERT INTO palms
-      ("userId","idpengguna","cardId","palmprint1","palmvein1","palmprint2","palmvein2","updateTime","status","createdAt","updatedAt")
+      ("userid","idpengguna","cardId","palmprint1","palmvein1","palmprint2","palmvein2","updatetime","status","createdAt","updatedAt")
     VALUES
       ($1, $2, $3, $4::jsonb, $5::jsonb, $6::jsonb, $7::jsonb, $8, $9, $10, $11)
     RETURNING id
@@ -210,7 +210,7 @@ const registerUser = async (req, res) => {
     const now = new Date();
     const insertSql = `
       INSERT INTO palms
-        ("userId","idpengguna","cardId","palmprint1","palmvein1","palmprint2","palmvein2","updateTime","status","createdAt","updatedAt")
+        ("userid","idpengguna","cardId","palmprint1","palmvein1","palmprint2","palmvein2","updatetime","status","createdAt","updatedAt")
       VALUES
         ($1, $2, $3, $4::jsonb, $5::jsonb, $6::jsonb, $7::jsonb, $8, $9, $10, $11)
       RETURNING id
@@ -248,7 +248,7 @@ const listPalms = async (req, res) => {
   try {
     const { status = '101', limit = 50, offset = 0 } = req.query;
     const sql = `
-      SELECT id, "userId", "cardId", "updateTime", status, "createdAt", "updatedAt"
+      SELECT id, "userid", "cardId", "updatetime", status, "createdAt", "updatedAt"
       FROM palms
       WHERE status = $1
       ORDER BY "updateTime" DESC NULLS LAST, id DESC
@@ -282,7 +282,7 @@ const verifyPalm = async (req, res) => {
 const getPalmsData = async (req, res) => {
   try {
     // Menjalankan query SQL untuk mengambil data dari tabel palms
-    const query = 'SELECT "userId", "cardId", status, "updateTime" FROM palms';
+    const query = 'SELECT "userid", "cardId", status, "updatetime" FROM palms';
     const result = await pool.query(query);
 
     // Jika data ditemukan, kirimkan sebagai response

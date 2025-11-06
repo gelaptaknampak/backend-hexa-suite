@@ -9,7 +9,6 @@ const isIntLike = (v) => {
   return false;
 };
 
-
 function formatDateTime(dt) {
   if (!dt) return '';
   const d = new Date(dt);
@@ -22,10 +21,8 @@ function toSafeString(v) {
   if (v === null || v === undefined) return '';
   if (typeof v === 'string') return v;
   try {
-    // stringify biasa dulu
     return JSON.stringify(v);
   } catch {
-    // fallback: base64 dari buffer JSON
     try {
       const buf = Buffer.from(String(v));
       return buf.toString('base64');
@@ -35,11 +32,11 @@ function toSafeString(v) {
   }
 }
 
-
 const ok = (res) => {
   res.set("Connection", "close");
   return res.status(200).json({ code: 0, message: "OK" });
 };
+
 const bad = (res, message = "Parameter error") => {
   res.set("Connection", "close");
   return res.status(400).json({ code: 400, message });
@@ -47,8 +44,6 @@ const bad = (res, message = "Parameter error") => {
 
 // 3.3.1 Get the current time of the server
 const getCurrentTimeMillis = async (req, res) => {
-  console.log("[getCurrentTimeMillis] headers:", req.headers);
-  // Body seharusnya null; tidak masalah jika ada.
   const timestamp = Date.now(); // Linux timestamp (ms)
   res.set("Connection", "close");
   return res.status(200).json({ code: 0, data: timestamp, message: "OK" });
@@ -56,16 +51,7 @@ const getCurrentTimeMillis = async (req, res) => {
 
 // 3.3.2 Add device to waiting list
 const addWaitAddDevice = async (req, res) => {
-  console.log("[addWaitAddDevice] body:", req.body);
-  const {
-    deviceType,
-    deviceSn,
-    ip,
-    mac,
-    firmwareVersion,
-    veinAlgVersion,
-    // status, lastAccessTime (opsional)
-  } = req.body || {};
+  const { deviceType, deviceSn, ip, mac, firmwareVersion, veinAlgVersion } = req.body || {};
 
   if (
     !isNonEmptyString(deviceType) ||
@@ -78,28 +64,25 @@ const addWaitAddDevice = async (req, res) => {
     return bad(res, "Parameter error");
   }
 
-  // Sesuai dokumen: sukses hanya { code, message }
+  // Add device to waiting list
   return ok(res);
 };
 
 // 3.3.3 Upload device information
 const uploadDeviceInfo = async (req, res) => {
-  console.log("[uploadDeviceInfo] body:", req.body);
   const { deviceType, deviceSn } = req.body || {};
   if (!isNonEmptyString(deviceType) || !isNonEmptyString(deviceSn)) {
-    return bad(res, "Device does not exist "); // contoh fail di dokumen
+    return bad(res, "Device does not exist");
   }
-  // Sukses: hanya code + message
   return ok(res);
 };
 
 // 3.3.4 Upload the device configuration
 const updateDeviceConfig = async (req, res) => {
-  console.log("[updateDeviceConfig] body:", req.body);
   const { deviceSn, maxUserNum } = req.body || {};
 
   if (!isNonEmptyString(deviceSn)) {
-    return bad(res, "The device configuration does not exist ");
+    return bad(res, "The device configuration does not exist");
   }
   if (maxUserNum !== undefined && !isInt(maxUserNum)) {
     return bad(res, "Parameter error");
@@ -107,8 +90,7 @@ const updateDeviceConfig = async (req, res) => {
   return ok(res);
 };
 
-// 3.3.5 Upload access information (dipanggil setelah orang lewat)
-// Balas secepat mungkin agar alat tidak "stuck" dan siap scan lagi
+
 const uploadAccessInfo = async (req, res) => {
   console.log("[uploadAccessInfo] body:", req.body);
   const {
@@ -147,24 +129,24 @@ const uploadAccessInfo = async (req, res) => {
 
 // 3.3.6 Get the latest software version number information
 const getLatestVersion = async (req, res) => {
-  console.log("[getLatestVersion] body:", req.body);
   const { deviceType, deviceSn } = req.body || {};
   if (!isNonEmptyString(deviceType) || !isNonEmptyString(deviceSn)) {
-    return bad(res, "no valid version information ");
+    return bad(res, "no valid version information");
   }
 
   res.set("Connection", "close");
   return res.status(200).json({
     code: 0,
     data: {
-      deviceType,                 // sesuai spek
-      version: "1.6.0",           // contoh versi
-      url: "http://192.168.31.231:9080/test.zip", // contoh URL
+      deviceType,
+      version: "1.6.0",
+      url: "http://192.168.31.231:9080/test.zip",
     },
     message: "OK",
   });
 };
 
+// 3.3.7 Getting Workflow information for people (paging)
 const getWorkflowUsers = async (req, res) => {
   try {
     const { deviceSn, status, pageIndex = 1, pageSize = 10 } = req.body || {};
@@ -175,30 +157,33 @@ const getWorkflowUsers = async (req, res) => {
     const page = Math.max(parseInt(pageIndex, 10) || 1, 1);
     const size = Math.min(Math.max(parseInt(pageSize, 10) || 10, 1), 5000);
 
-    const where = { status: String(status) };
-
-    // Get total count from the new database
-    const [totalResult] = await pool.query(
-      "SELECT COUNT(*) AS total FROM workflow_users WHERE status = ?",
+    // Query to get total count of records
+    const totalResult = await pool.query(
+      "SELECT COUNT(*) AS total FROM palms WHERE status = $1", // Parameterized query for count
       [String(status)]
     );
-    const total = totalResult.total;
+    const total = totalResult.rows[0].total;
 
-    // Get rows with pagination from the new database
-    const [rows] = await pool.query(
-      `SELECT * FROM workflow_users
-      WHERE status = ? 
-      ORDER BY updateTime DESC, id DESC
-      LIMIT ? OFFSET ?`,
+    // Query to get data rows with pagination
+    const result = await pool.query(
+      `SELECT * FROM palms WHERE status = $1 ORDER BY updateTime DESC, id DESC LIMIT $2 OFFSET $3`, // Perbaikan: menggunakan 'updateTime'
       [String(status), size, (page - 1) * size]
     );
 
+    const rows = result.rows;
+
+    // Ensure rows is iterable (array)
+    if (!Array.isArray(rows)) {
+      return res.status(500).json({ code: 500, message: "Data is not iterable." });
+    }
+
     let data;
     if (String(status) === '101') {
+      // Map the result to the required object structure
       data = rows.map(r => {
         const obj = {
           userId: r.userId || '',
-          updateTime: r.updateTime ? formatDateTime(r.updateTime) : '',
+          updateTime: r.updateTime ? formatDateTime(r.updateTime) : '',  // Pastikan menggunakan 'updateTime' yang benar
           palmprint1: toSafeString(r.palmprint1),
           palmvein1: toSafeString(r.palmvein1),
           palmprint2: toSafeString(r.palmprint2),
@@ -215,11 +200,10 @@ const getWorkflowUsers = async (req, res) => {
       return res.status(400).json({ code: 400, message: 'Parameter error' });
     }
 
-    // Calculate pageTotal
+    // Calculate pagination information
     const rawPages = Math.ceil(total / size);
     const pageTotal = total === 0 ? 0 : Math.max(1, rawPages);
 
-    // Send the response payload
     const payload = {
       code: 0,
       message: 'OK',
@@ -228,8 +212,6 @@ const getWorkflowUsers = async (req, res) => {
       pageTotal,
       pageIndex: page,
       pageSize: size,
-      dataToal: total,
-      paeSize: size,
     };
 
     return res.json(payload);
@@ -240,7 +222,6 @@ const getWorkflowUsers = async (req, res) => {
 };
 
 // 3.3.8 Modifying a person's Workflow information
-// Bersihkan queue begitu device report sukses, agar data tidak dikirim berulang.
 const updateWorkflowUsers = async (req, res) => {
   const { deviceSn, userStatusMap } = req.body || {};
   console.log('[updateWorkflowUsers] body:', req.body);
@@ -249,10 +230,9 @@ const updateWorkflowUsers = async (req, res) => {
     return res.status(400).json({ code: 400, message: 'Parameter error' });
   }
 
-  // Begin transaction
-  const t = await pool.getConnection();
-  await t.beginTransaction();
+  const client = await pool.connect();
   try {
+    await client.query('BEGIN'); // Begin transaction
     // Process each userId → status
     for (const [userIdRaw, statRaw] of Object.entries(userStatusMap)) {
       const userId = String(userIdRaw || '').trim();
@@ -261,27 +241,29 @@ const updateWorkflowUsers = async (req, res) => {
       if (!userId) continue;
 
       if (stat === '200') {
-        await t.query(
-          `UPDATE workflow_users SET status = '200', updatedAt = ? 
-          WHERE userId = ? AND status = '101'`,
+        // Update user status to '200' (added successfully)
+        await client.query(
+          `UPDATE palms SET status = '200', updatedAt = $1 WHERE userId = $2 AND status = '101'`,
           [new Date(), userId]
         );
       } else if (stat === '300') {
-        await t.query(
-          `UPDATE workflow_users SET status = '300', updatedAt = ? 
-          WHERE userId = ? AND status = '102'`,
+        // Update user status to '300' (deleted successfully)
+        await client.query(
+          `UPDATE palms SET status = '300', updatedAt = $1 WHERE userId = $2 AND status = '102'`,
           [new Date(), userId]
         );
       } else {
-        continue;
+        continue; // Ignore invalid status
       }
     }
 
-    await t.commit();
+    await client.query('COMMIT'); // Commit transaction
   } catch (e) {
     console.warn('[updateWorkflowUsers] DB update warning:', e);
-    try { await t.rollback(); } catch { }
+    try { await client.query('ROLLBACK'); } catch { }
     return res.json({ code: 0, message: 'OK' });
+  } finally {
+    client.release(); // Release the client connection
   }
 
   return res.json({ code: 0, message: 'OK' });
