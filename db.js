@@ -1,11 +1,9 @@
-const Pool = require("pg").Pool;
+import pkg from "pg";
+const { Pool } = pkg;
 
 const pool = new Pool({
-  user: "postgres",
-  host: "localhost",
-  database: "HBMF",
-  password: "Diona188",
-  port: 5432,
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false },
 });
 
-module.exports = pool;
+export default pool;
