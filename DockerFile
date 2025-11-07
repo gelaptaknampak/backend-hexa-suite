@@ -1,20 +1,14 @@
-# Base image
-FROM node:18-alpine
+# Use the official Node.js image as the base image
+FROM node:18
 
-# Set work directory
+# Set the working directory in the container
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+# Copy the application files into the working directory
+COPY . /app
 
-# Install dependencies
+# Install the application dependencies
 RUN npm install
 
-# Copy all files
-COPY . .
-
-# Expose port (Back4App uses $PORT)
-EXPOSE 3000
-
-# Start the server
+# Define the entry point for the container
 CMD ["npm", "start"]
