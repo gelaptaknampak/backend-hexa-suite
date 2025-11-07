@@ -1,13 +1,15 @@
-const { Router } = require("express");
-const cont = require("./cont");
-const verifyToken = require("../../verifyToken");  // Middleware untuk memverifikasi token
+// src/Activity/routes.js
+const express = require("express");
+const controller = require("./cont");
 
-const router = Router();
+const router = express.Router();
 
-// Gunakan verifyToken middleware jika perlu verifikasi
-router.use(verifyToken);
-
-// Route untuk menerima data aktivitas
-router.post("/activity", cont.postActivity);
+router.post("/test", controller.testDevice);
+router.post("/start", controller.startPalm);
+router.post("/state", controller.getPalmState);
+router.post("/feature", controller.getPalmFeature);
+router.post("/image", controller.getPalmImage);
+router.get("/templates", controller.listPalmTemplates);
+router.get("/images", controller.listPalmImages);
 
 module.exports = router;
